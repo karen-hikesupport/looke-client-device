@@ -6,10 +6,12 @@ from get_sensor_data import get_data
 from gpiozero import AngularServo
 from publish import send,connect_mqtt
 from pathlib import Path
+import configparser
 
 
 servo = AngularServo(18, min_pulse_width=0.0006, max_pulse_width=0.0023)
-
+config = configparser.ConfigParser()
+config.read("config.ini")
 
 def leftside_video_capture_pipeline(camera):
     print("start left side video record")
@@ -88,6 +90,14 @@ def set_camera_angle(angle):
     #servo1.ChangeDutyCycle(0)
 
 with picamera.PiCamera() as camera:
+
+    mqtt_broker_setting = config["mqtt_broker"]
+    mqtthost = mqtt_broker_setting["host"]
+    mqttport = int(mqtt_broker_setting["port"])
+    print(mqtthost)
+    print(mqttport)
+    
+
     camera.resolution = (1920, 1080)
     #camera.framerate = Fraction(1, 6)
     camera.sensor_mode = 3
@@ -96,7 +106,7 @@ with picamera.PiCamera() as camera:
     #camera.exposure_mode = 'off'     
 
 
-    client=connect_mqtt()
+    client=connect_mqtt(mqtthost,mqttport)
 
     Path("/home/pi/looke-client/camera/").mkdir(parents=True, exist_ok=True)
     Path("/home/pi/looke-client/camera/videos").mkdir(parents=True, exist_ok=True)
