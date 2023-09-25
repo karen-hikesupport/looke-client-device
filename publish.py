@@ -3,16 +3,21 @@
 import random
 import time
 from paho.mqtt import client as mqtt_client
+import configparser
 
 
-
-
+config = configparser.ConfigParser()
+config.read("config.ini")
 # Generate a Client ID with the publish prefix.
-client_id = f'publish-{random.randint(0, 1000)}'
+client_id = f'publish'
 # username = 'emqx'
 # password = 'public'
 
+def on_log(client, userdata, level, buf):
+    print(datetime.datetime.now(), buf)
 
+def on_disconnect(client, userdata, rc):    
+    print("disconnected OK")
 
 def connect_mqtt(host,port):
     def on_connect(client, userdata, flags, rc):
@@ -23,28 +28,42 @@ def connect_mqtt(host,port):
 
     client = mqtt_client.Client(client_id)
     # client.username_pw_set(username, password)
-    client.on_connect = on_connect
-    client.connect(host, port)
+    client.on_connect = on_connect    
+    client.on_log=on_log
+    client.on_disconnect = on_disconnect
+    client._connect_timeout = 500
+    client.connect(host, port,keepalive=0)    
     return client
 
 
 def publish(client,topic,msg):            
+    print(topic)
     print(msg)
-    result = client.publish(topic, msg)
+    result = client.publish(topic, msg, qos=2, retain=False)
     # result: [0, 1]
     status = result[0]
     if status == 0:
-        print(f"Send `{msg}` to topic `{topic}`")
+        print(f"Send topic `{topic}`")
     else:
         print(f"Failed to send message to topic {topic}")
        
 
-def subscribe(client: mqtt_client):
+def subscribe(client: mqtt_client, device_id:str):
     def on_message(client, userdata, msg):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
 
-    client.subscribe(topic)
-    client.on_message = on_message    
+    client.subscribe("/device/" + device_id + "/save_config")    
+    client.on_message = on_message
+    client.message_callback_add("/device/" + device_id + "/save_config", on_message_save_config)    
+
+def on_message_save_config(client, userdata, msg):
+    print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
+    config.set('device_configuration', 'deck', '1')
+    config.set('device_configuration', 'pen', '1')
+    config.set('device_configuration', 'location', '1')
+    config.set('device_configuration', 'data_interval', '1')
+    #config.set('device_configuration', 'tasks', ["animal_counting","lameness"])
+
 
 def send(client,topic, msg):        
         publish(client,topic,msg)
