@@ -11,11 +11,16 @@ config.read("config.ini")
 mqtt_broker_setting = config["mqtt_broker"]
 broker = mqtt_broker_setting["host"]
 port = int(mqtt_broker_setting["port"])
-topic = "python/mqtt"
+
+
+device_configuration = config["device_configuration"]
+device_id = device_configuration["device_thing"]
+
+
 # Generate a Client ID with the subscribe prefix.
-client_id = 'client_device'
-deviceStatusTopic = "/device/"+client_id+"/status"
-deviceStatusOkTopic = "/device/"+client_id+"/status_receive"
+client_id = device_id
+deviceStatusTopic = "$looke/device/"+client_id+"/status"
+deviceStatusOkTopic = "$looke/device/"+client_id+"/status_receive"
 # username = 'emqx'
 # password = 'public'
 

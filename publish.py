@@ -4,10 +4,17 @@ import random
 import time
 from paho.mqtt import client as mqtt_client
 import configparser
+import socket,json
+from uuid import getnode as get_mac
 
 
 config = configparser.ConfigParser()
 config.read("config.ini")
+
+
+device_configuration = config["device_configuration"]
+device_thing = device_configuration["device_thing"]
+print(device_thing)
 # Generate a Client ID with the publish prefix.
 client_id = f'publish'
 # username = 'emqx'
@@ -48,13 +55,15 @@ def publish(client,topic,msg):
         print(f"Failed to send message to topic {topic}")
        
 
-def subscribe(client: mqtt_client, device_id:str):
+def subscribe(client: mqtt_client, device_thing:str):
     def on_message(client, userdata, msg):
         print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
 
-    client.subscribe("/device/" + device_id + "/save_config")    
+    client.subscribe("/device/" + device_thing + "/save_config")  
+    client.subscribe("$looke/device/"+device_thing+"/status")  
     client.on_message = on_message
-    client.message_callback_add("/device/" + device_id + "/save_config", on_message_save_config)    
+    client.message_callback_add("/device/" + device_thing + "/save_config", on_message_save_config)
+    client.message_callback_add("$looke/device/"+device_thing+"/status", on_message_status_check)    
 
 def on_message_save_config(client, userdata, msg):
     print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
@@ -65,7 +74,45 @@ def on_message_save_config(client, userdata, msg):
     #config.set('device_configuration', 'tasks', ["animal_counting","lameness"])
 
 
+def on_message_status_check(client, userdata, msg):
+    record =json.loads(msg.payload.decode())
+    print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
+    deviceStatusTopic = "$looke/device/"+device_thing+"/status"
+    deviceStatusOkTopic = "$looke/device/"+device_thing+"/status_receive"
+    if msg.topic == deviceStatusTopic:
+            local_ip = get_local_ip()
+            mac = str(get_mac())
+            print(local_ip)
+            print(mac)
+            if mac == record["mac_address"] and device_thing == record["thing"]:            
+                device_info ={
+                    'ip_address':local_ip,
+                    'mac_address':mac
+                }
+                client.publish(deviceStatusOkTopic,json.dumps(device_info))
+                client.loop_stop()
+            else:
+                print("not match mac address")
+            #exit()
+
+
+
+
 def send(client,topic, msg):        
         publish(client,topic,msg)
+
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('192.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
     
 

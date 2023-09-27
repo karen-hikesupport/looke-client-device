@@ -8,12 +8,16 @@ from publish import send,connect_mqtt,subscribe
 from pathlib import Path
 import configparser
 import json
-from mongo_client_helper import save_device_config,set_device_status
+from mongo_client_helper import save_device_config,set_device_status,add_device_log,check_device_register
 from sniff import record_gas_sensor_data
+from bson import ObjectId
 
 
-save_device_config()
 
+isdevice_registered = check_device_register()
+
+if isdevice_registered:
+    save_device_config()     
 
 servo = AngularServo(18, min_pulse_width=0.0006, max_pulse_width=0.0023)
 config = configparser.ConfigParser()
@@ -23,6 +27,7 @@ config.read("config.ini")
 
 device_configuration = config["device_configuration"]
 device_id = device_configuration["device_id"]
+device_thing = device_configuration["device_thing"]
 deck = device_configuration["deck"]
 pen = device_configuration["pen"]
 location = device_configuration["location"]
@@ -35,8 +40,8 @@ curr_dt = datetime.now()
 timestamp = int(round(curr_dt.timestamp()))
 record_files=[]
 
-left_videofile="{}_{}_left_video.h264".format(timestamp,device_id)
-right_videofile="{}_{}_right_video.h264".format(timestamp,device_id)
+left_videofile="{}_{}_left_video.h264".format(timestamp,device_thing)
+right_videofile="{}_{}_right_video.h264".format(timestamp,device_thing)
 
 
 
@@ -64,7 +69,7 @@ def leftside_capture_images(camera):
     #camera position to angle 0
     set_camera_angle(0)
     for x in range(0,5):
-        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_id,0,x)
+        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,0,x)
         camera.capture('camera/'+ image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
@@ -72,7 +77,7 @@ def leftside_capture_images(camera):
     #camera position to angle 35 degree
     set_camera_angle(35)
     for x in range(0,5):
-        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_id,35,x)
+        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,35,x)
         camera.capture('camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
@@ -80,7 +85,7 @@ def leftside_capture_images(camera):
     set_camera_angle(55)
     print("start left side capture image 55 degree")
     for x in range(0,5):
-        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_id,55,x)
+        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,55,x)
         camera.capture('camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)    
@@ -107,7 +112,7 @@ def rightside_capture_images(camera):
     #camera position to angle 0
     set_camera_angle(0)
     for x in range(0,5):
-        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_id,0,x)
+        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,0,x)
         camera.capture('camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
@@ -115,7 +120,7 @@ def rightside_capture_images(camera):
     #camera position to angle 35 degree
     set_camera_angle(-35)
     for x in range(6,10):
-        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_id,35,x)
+        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,35,x)
         camera.capture('camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
@@ -123,7 +128,7 @@ def rightside_capture_images(camera):
     #camera position to angle 55 degree
     set_camera_angle(-55)
     for x in range(11,15):
-        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_id,55,x)
+        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,55,x)
         camera.capture('camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)    
@@ -141,10 +146,6 @@ with picamera.PiCamera() as camera:
     print("mqtt host: ",mqtthost)
     print("mqtt port: ",mqttport)
     
-
-
-
-
     camera.resolution = (1920, 1080)
     #camera.framerate = Fraction(1, 6)
     camera.sensor_mode = 3
@@ -153,12 +154,19 @@ with picamera.PiCamera() as camera:
     #camera.exposure_mode = 'off'     
 
 
-    client=connect_mqtt(mqtthost,mqttport)
-    
-    set_device_status(True)
-    send(client,"$looke/device_status/"+device_id,True)
+    client=connect_mqtt(mqtthost,mqttport)    
 
-    subscribe(client,device_id)
+    if isdevice_registered == False:
+        print("is device not registered")
+        subscribe(client,device_thing)
+        client.loop_forever()
+
+
+
+    set_device_status(True)
+    send(client,"$looke/device_status/"+device_thing,True)
+
+    subscribe(client,device_thing)
 
     print("connected edged device successfully")
 
@@ -172,6 +180,7 @@ with picamera.PiCamera() as camera:
     print(lnc_id)
     send_file_obj={
         "device_id":device_id,
+        "device_thing":device_thing,
         "deck" : deck,
         "pen" : pen,
         "location" : location,
@@ -180,7 +189,7 @@ with picamera.PiCamera() as camera:
         "files":record_files,
         "config":""
     }
-    send(client,"$looke/filetransfer_status/"+device_id,json.dumps(send_file_obj))
+    send(client,"$looke/filetransfer_status/"+device_thing,json.dumps(send_file_obj))
 
     print("recorded screen and images are successfully sent to edge device")
 
@@ -189,7 +198,7 @@ with picamera.PiCamera() as camera:
     print(data)
     
     temperature = float(data["raw_temperature"])
-    RH = 6.11 * 10 ((7.5 * temperature)/(273.3 + temperature))
+    RH = 6.11 * 10 * ((7.5 * temperature)/(273.3 + temperature))
     WBT = temperature * math.atan(0.151977 * (RH + 8.313659)**(1/2)) + math.atan(temperature + RH) - math.atan(RH - 1.676331) + 0.00391838 *(RH)**(3/2) * math.atan(0.023101 * RH) - 4.686035 
 
     gas_sensor_data = record_gas_sensor_data()
@@ -197,6 +206,7 @@ with picamera.PiCamera() as camera:
     print(gas_sensor_data)
     send_sensor_obj={
         "device_id":device_id,
+        "device_thing":device_thing,
         "deck" : deck,
         "pen" : pen,
         "location" : location,
@@ -225,8 +235,20 @@ with picamera.PiCamera() as camera:
     #     #"sensor_data" : data
     # }  
 
-    send(client,"$looke/sensor_data_status/"+device_id,json.dumps(send_sensor_obj))
+    send(client,"$looke/sensor_data_status/"+device_thing,json.dumps(send_sensor_obj))
     print("Send sensor data succefully.....")
     
     set_device_status(False)
-    send(client,"$looke/device_status/"+device_id,False)
+    send(client,"$looke/device_status/"+device_thing,False)
+
+
+    recordlog = { 
+          "device": ObjectId(device_id),
+          "exporterchannel": ObjectId(lnc_id),
+          "logged_date": datetime.now(),
+          "data_collected":"Gas sensor data, temperature and humidity",
+          "status":True,          
+          }
+    add_device_log(recordlog)
+    print('added device log...')
+
