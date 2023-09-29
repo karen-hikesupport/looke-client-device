@@ -5,7 +5,7 @@ import time
 from paho.mqtt import client as mqtt_client
 import configparser
 import socket,json
-from uuid import getnode as get_mac
+import getmac
 
 
 config = configparser.ConfigParser()
@@ -81,11 +81,12 @@ def on_message_status_check(client, userdata, msg):
     deviceStatusOkTopic = "$looke/device/"+device_thing+"/status_receive"
     if msg.topic == deviceStatusTopic:
             local_ip = get_local_ip()
-            mac = str(get_mac())
+            mac = getmac.get_mac_address()
             print(local_ip)
             print(mac)
             if mac == record["mac_address"] and device_thing == record["thing"]:            
                 device_info ={
+                    'success':True,
                     'ip_address':local_ip,
                     'mac_address':mac
                 }
@@ -93,6 +94,11 @@ def on_message_status_check(client, userdata, msg):
                 client.loop_stop()
             else:
                 print("not match mac address")
+                device_info ={
+                    'success':False, 
+                    'message':"associated device mac address is different."                   
+                }
+                client.publish(deviceStatusOkTopic,json.dumps(device_info))
             #exit()
 
 

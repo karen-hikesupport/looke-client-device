@@ -11,6 +11,9 @@ import json
 from mongo_client_helper import save_device_config,set_device_status,add_device_log,check_device_register
 from sniff import record_gas_sensor_data
 from bson import ObjectId
+import os,subprocess
+
+
 
 
 
@@ -28,6 +31,7 @@ config.read("config.ini")
 device_configuration = config["device_configuration"]
 device_id = device_configuration["device_id"]
 device_thing = device_configuration["device_thing"]
+device_name = device_configuration["name"]
 deck = device_configuration["deck"]
 pen = device_configuration["pen"]
 location = device_configuration["location"]
@@ -138,7 +142,25 @@ def set_camera_angle(angle):
     time.sleep(2)
     #servo1.ChangeDutyCycle(0)
 
+
+def check_mount_and_configured():
+    mountpath = "/home/pi/looke-client/camera"
+    ismount = os.path.ismount(mountpath)
+    print("directory mount " + str(ismount))
+    if ismount == False:        
+        for f in os.listdir(mountpath):
+            os.remove(os.path.join(mountpath, f))
+
+        mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:/home/nvidia/camera_stream/ /home/pi/looke-client/camera/  <<< {}".format('nvidia')
+        subprocess.call(mount_command, shell=True, executable='/bin/bash')
+        print("directory mount success")
+
+
+
+
 with picamera.PiCamera() as camera:
+
+    check_mount_and_configured()
 
     mqtt_broker_setting = config["mqtt_broker"]
     mqtthost = mqtt_broker_setting["host"]
@@ -181,6 +203,7 @@ with picamera.PiCamera() as camera:
     send_file_obj={
         "device_id":device_id,
         "device_thing":device_thing,
+        "device_name":device_name,
         "deck" : deck,
         "pen" : pen,
         "location" : location,
@@ -207,6 +230,7 @@ with picamera.PiCamera() as camera:
     send_sensor_obj={
         "device_id":device_id,
         "device_thing":device_thing,
+        "device_name":device_name,
         "deck" : deck,
         "pen" : pen,
         "location" : location,

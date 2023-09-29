@@ -5,6 +5,8 @@ import json
 import datetime
 import os
 import configparser  
+import getmac
+import subprocess
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -57,6 +59,7 @@ def save_device_config():
         config.set('device_configuration', 'locations', str(result.get("locations")))
         config.set('device_configuration', 'feedAndWaterReview', str(result.get("feedAndWaterReview")))
         config.set('device_configuration', 'feedWaterTime', str(result.get("feedWaterTime")))
+        config.set('device_configuration', 'name', str(result.get("name")))
 
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
@@ -88,7 +91,15 @@ def get_records():
 def set_edgedevice_online():
         result = devicecollection.update_one({'name':'Edge Device'}, {"$set" : {"status" :True}})         
 
+def delete_all_file():
+        mountpath = "/home/pi/looke-client/camera"
+        for f in os.listdir(mountpath):
+            os.remove(os.path.join(mountpath, f))
 
+#mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:/home/nvidia/camera_stream/ /home/pi/looke-client/camera/  <<< {}".format('nvidia')
+#subprocess.call(mount_command, shell=True, executable='/bin/bash')
 
-deleteDevice()
+#print(getmac.get_mac_address())
+#deleteDevice()
 #result = check_device_register()
+#delete_all_file()

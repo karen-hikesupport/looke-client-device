@@ -52,6 +52,7 @@ def record_gas_sensor_data():
         # print(bme.get_bsec_data())
         try:
             data = bme.get_digital_nose_data()
+            print(data)
         except Exception as e:
             print(e)
             main()
