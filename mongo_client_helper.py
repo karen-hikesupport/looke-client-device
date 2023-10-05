@@ -60,6 +60,7 @@ def save_device_config():
         config.set('device_configuration', 'feedAndWaterReview', str(result.get("feedAndWaterReview")))
         config.set('device_configuration', 'feedWaterTime', str(result.get("feedWaterTime")))
         config.set('device_configuration', 'name', str(result.get("name")))
+        config.set('device_configuration', 'count_config', str(result.get("count_config")))
 
         with open('config.ini', 'w') as configfile:
             config.write(configfile)

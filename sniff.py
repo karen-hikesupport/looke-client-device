@@ -51,8 +51,7 @@ def record_gas_sensor_data():
     while(data_fetch):
         # print(bme.get_bsec_data())
         try:
-            data = bme.get_digital_nose_data()
-            print(data)
+            data = bme.get_digital_nose_data()            
         except Exception as e:
             print(e)
             main()
@@ -87,7 +86,7 @@ def record_gas_sensor_data():
             with open('sniff-data.json', 'w') as file:
                 json.dump(d, file)
 
-    print(gas_sensor_data)
+    #print(gas_sensor_data)
     
     NormalAir =get_average_value([x["NormalAir"] for x in gas_sensor_data])
     NH3 =get_average_value([x["NH3"] for x in gas_sensor_data])

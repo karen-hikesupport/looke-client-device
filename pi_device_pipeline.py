@@ -37,7 +37,7 @@ pen = device_configuration["pen"]
 location = device_configuration["location"]
 lnc_id = device_configuration["lnc_id"]
 tasks = device_configuration["tasks"]
-
+count_config = device_configuration["count_config"]
 
 
 curr_dt = datetime.now()
@@ -210,7 +210,7 @@ with picamera.PiCamera() as camera:
         "exporterchannel" : lnc_id,
         "tasks":tasks,
         "files":record_files,
-        "config":""
+        "config":count_config
     }
     send(client,"$looke/filetransfer_status/"+device_thing,json.dumps(send_file_obj))
 
