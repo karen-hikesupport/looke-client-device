@@ -9,7 +9,7 @@ import getmac
 
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("/home/pi/looke-client/config.ini")
 
 
 device_configuration = config["device_configuration"]
@@ -84,14 +84,17 @@ def on_message_status_check(client, userdata, msg):
             mac = getmac.get_mac_address()
             print(local_ip)
             print(mac)
-            if mac == record["mac_address"] and device_thing == record["thing"]:            
+            if mac == record["mac_address"] and device_thing == record["thing"]:
+                print("match mac address")            
                 device_info ={
                     'success':True,
                     'ip_address':local_ip,
                     'mac_address':mac
                 }
+                print(json.dumps(device_info))
                 client.publish(deviceStatusOkTopic,json.dumps(device_info))
-                client.loop_stop()
+                #client.loop_stop()
+                print("published done")   
             else:
                 print("not match mac address")
                 device_info ={

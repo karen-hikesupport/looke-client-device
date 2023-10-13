@@ -9,7 +9,7 @@ import getmac
 import subprocess
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("/home/pi/looke-client/config.ini")
 
 
 mqtt_broker_setting = config["mqtt_broker"]
@@ -73,6 +73,9 @@ def set_device_status(status:bool):
 def deleteDevice():
     result = devicecollection.delete_many({'thingName':'client_device'})
 
+def deleteAllevents():
+    result = eventscollection.delete_many({})    
+
 def update_to_client_device():    
     devicecollection.update_one({'thingName':'client_device'}, {"$set" : {"type" :1}})   
 
@@ -104,3 +107,4 @@ def delete_all_file():
 #deleteDevice()
 #result = check_device_register()
 #delete_all_file()
+#deleteAllevents()

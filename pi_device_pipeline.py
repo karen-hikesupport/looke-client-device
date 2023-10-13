@@ -24,7 +24,7 @@ if isdevice_registered:
 
 servo = AngularServo(18, min_pulse_width=0.0006, max_pulse_width=0.0023)
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("/home/pi/looke-client/config.ini")
 
 
 
@@ -56,7 +56,7 @@ def leftside_video_capture_pipeline(camera):
     print("start left side video record")
     curr_dt = datetime.now()
     timestamp = str(int(round(curr_dt.timestamp())))
-    videofilename = "camera/{}".format(left_videofile)
+    videofilename = "/home/pi/looke-client/camera/{}".format(left_videofile)
     camera.start_recording(videofilename)
     time.sleep(10)
     for x in range(0,50):
@@ -74,7 +74,7 @@ def leftside_capture_images(camera):
     set_camera_angle(0)
     for x in range(0,5):
         image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,0,x)
-        camera.capture('camera/'+ image_file_name)
+        camera.capture('/home/pi/looke-client/camera/'+ image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     print("start left side capture image 35 degree")
@@ -82,7 +82,7 @@ def leftside_capture_images(camera):
     set_camera_angle(35)
     for x in range(0,5):
         image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,35,x)
-        camera.capture('camera/'+image_file_name)
+        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     #camera position to angle 55 degree
@@ -90,7 +90,7 @@ def leftside_capture_images(camera):
     print("start left side capture image 55 degree")
     for x in range(0,5):
         image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,55,x)
-        camera.capture('camera/'+image_file_name)
+        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)    
 
@@ -99,7 +99,7 @@ def rightside_video_capture_pipeline(camera):
     print("start right side video recording")
     curr_dt = datetime.now()
     timestamp = str(int(round(curr_dt.timestamp())))
-    videofilename = "camera/{}".format(right_videofile)
+    videofilename = "/home/pi/looke-client/camera/{}".format(right_videofile)
     camera.start_recording(videofilename)
     time.sleep(10)
     for x in range(0,50):
@@ -117,7 +117,7 @@ def rightside_capture_images(camera):
     set_camera_angle(0)
     for x in range(0,5):
         image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,0,x)
-        camera.capture('camera/'+image_file_name)
+        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     print("start right side capture image 35 degree")
@@ -125,7 +125,7 @@ def rightside_capture_images(camera):
     set_camera_angle(-35)
     for x in range(6,10):
         image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,35,x)
-        camera.capture('camera/'+image_file_name)
+        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     print("start right side capture image 55 degree")
@@ -133,7 +133,7 @@ def rightside_capture_images(camera):
     set_camera_angle(-55)
     for x in range(11,15):
         image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,55,x)
-        camera.capture('camera/'+image_file_name)
+        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)    
     
