@@ -44,8 +44,7 @@ def check_device_register():
 
 def save_device_config():
     result = devicecollection.find_one({'thingName':device_thing})
-    print(result)
-    print(result["deck"])
+    print(result)    
     if result is None:
         print("no result")
     else:
@@ -61,13 +60,21 @@ def save_device_config():
         config.set('device_configuration', 'feedWaterTime', str(result.get("feedWaterTime")))
         config.set('device_configuration', 'name', str(result.get("name")))
         config.set('device_configuration', 'count_config', str(result.get("count_config")))
+        config.set('device_configuration', 'sub_type', str(result.get("sub_type")))
+        
 
         with open('config.ini', 'w') as configfile:
             config.write(configfile)
 
 def set_device_status(status:bool):    
     result = devicecollection.update_one({'thingName':device_thing}, {"$set" : {"status" :status}})   
-    print(result)    
+    print(result)  
+
+def set_device_rtsp(rtspaddress:str, pid :int):    
+    result = devicecollection.update_one({'thingName':device_thing}, {"$set" : {"rtsp_address" :rtspaddress, "rtps_process_id":pid}})   
+    print(result) 
+
+    
 
 
 def deleteDevice():

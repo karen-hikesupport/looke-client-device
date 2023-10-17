@@ -38,6 +38,8 @@ location = device_configuration["location"]
 lnc_id = device_configuration["lnc_id"]
 tasks = device_configuration["tasks"]
 count_config = device_configuration["count_config"]
+sub_type = device_configuration["sub_type"]
+
 
 
 curr_dt = datetime.now()
@@ -157,45 +159,7 @@ def check_mount_and_configured():
 
 
 
-
-with picamera.PiCamera() as camera:
-
-    check_mount_and_configured()
-
-    mqtt_broker_setting = config["mqtt_broker"]
-    mqtthost = mqtt_broker_setting["host"]
-    mqttport = int(mqtt_broker_setting["port"])
-    print("mqtt host: ",mqtthost)
-    print("mqtt port: ",mqttport)
-    
-    camera.resolution = (1920, 1080)
-    #camera.framerate = Fraction(1, 6)
-    camera.sensor_mode = 3
-    #camera.shutter_speed = 6000000
-    camera.iso = 800
-    #camera.exposure_mode = 'off'     
-
-
-    client=connect_mqtt(mqtthost,mqttport)    
-
-    if isdevice_registered == False:
-        print("is device not registered")
-        subscribe(client,device_thing)
-        client.loop_forever()
-
-
-
-    set_device_status(True)
-    send(client,"$looke/device_status/"+device_thing,True)
-
-    subscribe(client,device_thing)
-
-    print("connected edged device successfully")
-
-    print("Now capture and record the screen and send to edge device.....")
-    Path("/home/pi/looke-client/camera/").mkdir(parents=True, exist_ok=True)
-    
-
+def process_moving_device(camera,client):
     leftside_video_capture_pipeline(camera)  
     #set camera position right side
     rightside_video_capture_pipeline(camera)  
@@ -242,22 +206,7 @@ with picamera.PiCamera() as camera:
         "CO2": gas_sensor_data["CO2"], 
         "CH4":  gas_sensor_data["CH4"], 
         "sensor_data" : data
-    }    
-
-    # send_sensor_obj={
-    #     "device_id":1,
-    #     "deck" : "1",
-    #     "pen" : "1",
-    #     "location" : "1",
-    #     "exporterchannel":"54545",
-    #     "RH": "1",
-    #     "NH3": "2", 
-    #     "WBT": 1,
-    #     "temperature": "2",  
-    #     "CO2": "2", 
-    #     "CH4":  "2", 
-    #     #"sensor_data" : data
-    # }  
+    }        
 
     send(client,"$looke/sensor_data_status/"+device_thing,json.dumps(send_sensor_obj))
     print("Send sensor data succefully.....")
@@ -275,4 +224,54 @@ with picamera.PiCamera() as camera:
           }
     add_device_log(recordlog)
     print('added device log...')
+
+
+
+
+
+check_mount_and_configured()
+
+mqtt_broker_setting = config["mqtt_broker"]
+mqtthost = mqtt_broker_setting["host"]
+mqttport = int(mqtt_broker_setting["port"])
+print("mqtt host: ",mqtthost)
+print("mqtt port: ",mqttport)
+
+client=connect_mqtt(mqtthost,mqttport)    
+
+if isdevice_registered == False:
+    print("is device not registered")
+    subscribe(client,device_thing)
+    client.loop_forever()
+
+set_device_status(True)
+send(client,"$looke/device_status/"+device_thing,True)
+
+subscribe(client,device_thing)
+
+print("connected edged device successfully")
+
+print("Now capture and record the screen and send to edge device.....")
+Path("/home/pi/looke-client/camera/").mkdir(parents=True, exist_ok=True)
+
+print(sub_type)
+
+if sub_type != "0":
+    print("couting device")
+    client.loop_forever()
+
+
+
+with picamera.PiCamera() as camera:
+   
+    camera.resolution = (1920, 1080)
+    #camera.framerate = Fraction(1, 6)
+    camera.sensor_mode = 3
+    #camera.shutter_speed = 6000000
+    camera.iso = 800
+    #camera.exposure_mode = 'off'     
+    
+    process_moving_device(camera,client)
+   
+    
 

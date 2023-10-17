@@ -78,8 +78,9 @@ main (int argc, char *argv[])
   g_object_unref (mounts);
 
   /* attach the server to the default maincontext */
-  gst_rtsp_server_attach (server, NULL);
+  gst_rtsp_server_attach (server, NULL); 
 
+  /*g_source_remove(server); */
   /* start serving */
   g_print ("stream ready at rtsp://127.0.0.1:%s/test\n", port);
   g_main_loop_run (loop);

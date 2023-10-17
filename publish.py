@@ -6,6 +6,9 @@ from paho.mqtt import client as mqtt_client
 import configparser
 import socket,json
 import getmac
+import mongo_client_helper
+import subprocess, os
+import get_process
 
 
 config = configparser.ConfigParser()
@@ -61,9 +64,17 @@ def subscribe(client: mqtt_client, device_thing:str):
 
     client.subscribe("/device/" + device_thing + "/save_config")  
     client.subscribe("$looke/device/"+device_thing+"/status")  
+    client.subscribe("$looke/device/" + device_thing + "/start_rtsp")  
+    client.subscribe("$looke/device/"+device_thing+"/stop_rtsp")  
+    client.subscribe("$looke/device/" + device_thing + "/start_countzone")
+    client.subscribe("$looke/device/" + device_thing + "/stop_countzone")
     client.on_message = on_message
     client.message_callback_add("/device/" + device_thing + "/save_config", on_message_save_config)
-    client.message_callback_add("$looke/device/"+device_thing+"/status", on_message_status_check)    
+    client.message_callback_add("$looke/device/"+device_thing+"/status", on_message_status_check)   
+    client.message_callback_add("$looke/device/" + device_thing + "/start_rtsp", on_message_start_rtsp)
+    client.message_callback_add("$looke/device/"+device_thing+"/stop_rtsp", on_message_stop_rtsp)  
+    client.message_callback_add("$looke/device/" + device_thing + "/start_countzone", on_message_start_countzone)
+    client.message_callback_add("$looke/device/" + device_thing + "/stop_countzone", on_message_stop_countzone)
 
 def on_message_save_config(client, userdata, msg):
     print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
@@ -104,8 +115,43 @@ def on_message_status_check(client, userdata, msg):
                 client.publish(deviceStatusOkTopic,json.dumps(device_info))
             #exit()
 
+def on_message_start_rtsp(client, userdata, msg):
+        print("start rtsp server")
+        cmd="/home/pi/looke-client/gst-rtsp-server-1.14.4/examples/test-launch --gst-debug=3 '( rpicamsrc bitrate=8000000 awb-mode=tungsten preview=false ! video/x-h264, width=640, height=480, framerate=30/1 ! h264parse ! rtph264pay name=pay0 pt=96 )'"
+        global pro
+        pro = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                       shell=True, preexec_fn=os.setsid) 
+        #pid =os.system("/home/pi/looke-client/gst-rtsp-server-1.14.4/examples/test-launch --gst-debug=3 '( rpicamsrc bitrate=8000000 awb-mode=tungsten preview=false ! video/x-h264, width=640, height=480, framerate=30/1 ! h264parse ! rtph264pay name=pay0 pt=96 )'")
+        print("started rtsp server")        
+        print(pro.pid)
+        local_ip = get_local_ip()
+        rtps_address = "rtsp://"+local_ip+":8554/test"
+        mongo_client_helper.set_device_rtsp(rtps_address,pro.pid)
+
+def on_message_stop_rtsp(client, userdata, msg):
+        record =json.loads(msg.payload.decode())
+        print('stop rtsp server now')
+        print(pro)
+        os.killpg(record["pid"], signal.SIGTERM) 
+        local_ip = get_local_ip()
+        rtps_address = "rtsp://"+local_ip+":8554/test"
+        mongo_client_helper.set_device_rtsp(rtps_address,0)
+        print('stopped rtsp server now')
 
 
+def on_message_start_countzone(client, userdata, msg):
+        get_process.stop_process('python3', 8000)
+        print("start rtsp server")
+        cmd="python3 /home/pi/looke-client/rpi_camera_surveillance_system.py"
+        global pro
+        pro = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
+                       shell=True, preexec_fn=os.setsid) 
+        #pid =os.system("/home/pi/looke-client/gst-rtsp-server-1.14.4/examples/test-launch --gst-debug=3 '( rpicamsrc bitrate=8000000 awb-mode=tungsten preview=false ! video/x-h264, width=640, height=480, framerate=30/1 ! h264parse ! rtph264pay name=pay0 pt=96 )'")
+        print("started count config")        
+        print(pro.pid)
+        
+def on_message_stop_countzone(client, userdata, msg):
+        get_process.stop_process('python3', 8000)
 
 def send(client,topic, msg):        
         publish(client,topic,msg)
