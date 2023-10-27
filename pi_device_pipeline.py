@@ -15,7 +15,7 @@ import os,subprocess
 
 
 
-
+root_path = "/home/pi/looke-client"
 
 isdevice_registered = check_device_register()
 
@@ -24,7 +24,7 @@ if isdevice_registered:
 
 servo = AngularServo(18, min_pulse_width=0.0006, max_pulse_width=0.0023)
 config = configparser.ConfigParser()
-config.read("/home/pi/looke-client/config.ini")
+config.read(root_path + "/config.ini")
 
 
 
@@ -39,6 +39,15 @@ lnc_id = device_configuration["lnc_id"]
 tasks = device_configuration["tasks"]
 count_config = device_configuration["count_config"]
 sub_type = device_configuration["sub_type"]
+
+sleep_duration_sec=device_configuration["sleep_duration_sec"]
+total_distance=device_configuration["total_distance"]
+number_of_collection_points=device_configuration["number_of_collection_points"]
+collection_angle=device_configuration["collection_angle"]
+image_zoom_level=device_configuration["image_zoom_level"]
+record_duration_sec=device_configuration["record_duration_sec"]
+record_angle=device_configuration["record_angle"]
+collection_mode=device_configuration["collection_mode"]
 
 
 
@@ -58,25 +67,38 @@ def leftside_video_capture_pipeline(camera):
     print("start left side video record")
     curr_dt = datetime.now()
     timestamp = str(int(round(curr_dt.timestamp())))
-    videofilename = "/home/pi/looke-client/camera/{}".format(left_videofile)
+    videofilename = root_path+"/camera/{}".format(left_videofile)
+    #set camera angle according device setting for record
+    set_camera_angle(record_angle)
     camera.start_recording(videofilename)
-    time.sleep(10)
-    for x in range(0,50):
-        camera.zoom=(x/100.,x/100.,0.5,0.5)
-        time.sleep(0.1)
-    time.sleep(1) 
-    camera.zoom=(0,0,1,1)
+    time.sleep(record_duration_sec)
+    #for x in range(0,50):
+    #    camera.zoom=(x/100.,x/100.,0.5,0.5)
+    #    time.sleep(0.1)
+    #time.sleep(1) 
+    #camera.zoom=(0,0,1,1)
     camera.stop_recording()   
     record_files.append(left_videofile) 
     leftside_capture_images(camera)    
 
 def leftside_capture_images(camera):
+    
+    for angle in collection_angle:
+        print(angle)
+        set_camera_angle(angle)
+        for zoom in image_zoom_level:
+            set_camera_zoom(camera,zoom)
+            image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,angle,zoom)
+            camera.capture(root_path + '/camera/'+ image_file_name)
+            record_files.append(image_file_name)
+            time.sleep(1)
+
     print("start left side capture image 0 degree")
     #camera position to angle 0
     set_camera_angle(0)
     for x in range(0,5):
         image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,0,x)
-        camera.capture('/home/pi/looke-client/camera/'+ image_file_name)
+        camera.capture(root_path + '/camera/'+ image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     print("start left side capture image 35 degree")
@@ -84,7 +106,7 @@ def leftside_capture_images(camera):
     set_camera_angle(35)
     for x in range(0,5):
         image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,35,x)
-        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
+        camera.capture(root_path + '/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     #camera position to angle 55 degree
@@ -92,7 +114,7 @@ def leftside_capture_images(camera):
     print("start left side capture image 55 degree")
     for x in range(0,5):
         image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,55,x)
-        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
+        camera.capture(root_path + '/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)    
 
@@ -101,25 +123,40 @@ def rightside_video_capture_pipeline(camera):
     print("start right side video recording")
     curr_dt = datetime.now()
     timestamp = str(int(round(curr_dt.timestamp())))
-    videofilename = "/home/pi/looke-client/camera/{}".format(right_videofile)
+    videofilename = root_path + "/camera/{}".format(right_videofile)
+    #set camera angle according device setting for record
+    angle = record_angle * -1
+    set_camera_angle(angle)
     camera.start_recording(videofilename)
-    time.sleep(10)
-    for x in range(0,50):
-        camera.zoom=(x/100.,x/100.,0.5,0.5)
-        time.sleep(0.1)
-    time.sleep(1) 
-    camera.zoom=(0,0,1,1)
+    time.sleep(record_duration_sec)
+    #for x in range(0,50):
+    #    camera.zoom=(x/100.,x/100.,0.5,0.5)
+    #    time.sleep(0.1)
+    #time.sleep(1) 
+    #camera.zoom=(0,0,1,1)
     camera.stop_recording()
     record_files.append(right_videofile)
     rightside_capture_images(camera)    
 
 def rightside_capture_images(camera):
+
+    for angle in collection_angle:
+        print(angle)
+        angle = angle * -1
+        set_camera_angle(angle)
+        for zoom in image_zoom_level:
+            set_camera_zoom(camera,zoom)
+            image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,angle,zoom)
+            camera.capture(root_path + '/camera/'+ image_file_name)
+            record_files.append(image_file_name)
+            time.sleep(1)
+
     print("start right side capture image 0 degree")
     #camera position to angle 0
     set_camera_angle(0)
     for x in range(0,5):
         image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,0,x)
-        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
+        camera.capture(root_path +'/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     print("start right side capture image 35 degree")
@@ -127,7 +164,7 @@ def rightside_capture_images(camera):
     set_camera_angle(-35)
     for x in range(6,10):
         image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,35,x)
-        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
+        camera.capture(root_path + '/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)
     print("start right side capture image 55 degree")
@@ -135,7 +172,7 @@ def rightside_capture_images(camera):
     set_camera_angle(-55)
     for x in range(11,15):
         image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,55,x)
-        camera.capture('/home/pi/looke-client/camera/'+image_file_name)
+        camera.capture(root_path+ '/camera/'+image_file_name)
         record_files.append(image_file_name)
         time.sleep(1)    
     
@@ -144,9 +181,11 @@ def set_camera_angle(angle):
     time.sleep(2)
     #servo1.ChangeDutyCycle(0)
 
+def set_camera_zoom(camera,mpx):
+    camera.zoom=(0,0,0.5,0.5)
 
 def check_mount_and_configured():
-    mountpath = "/home/pi/looke-client/camera"
+    mountpath = root_path + "/camera"
     ismount = os.path.ismount(mountpath)
     print("directory mount " + str(ismount))
     if ismount == False:        
@@ -160,9 +199,25 @@ def check_mount_and_configured():
 
 
 def process_moving_device(camera,client):
-    leftside_video_capture_pipeline(camera)  
+    is_right = False
+    is_left = False
+
+    if collection_mode == 'both':
+        is_right = True
+        is_left = True
+    elif collection_mode == 'only_left':
+        is_left = True
+    elif collection_mode == 'only_right':
+        is_right = True  
+
+    #set camera position left side
+    if is_left == True:
+        leftside_video_capture_pipeline(camera)  
+
     #set camera position right side
-    rightside_video_capture_pipeline(camera)  
+    if is_right == True:
+        rightside_video_capture_pipeline(camera)  
+
     print(lnc_id)
     send_file_obj={
         "device_id":device_id,
@@ -252,7 +307,7 @@ subscribe(client,device_thing)
 print("connected edged device successfully")
 
 print("Now capture and record the screen and send to edge device.....")
-Path("/home/pi/looke-client/camera/").mkdir(parents=True, exist_ok=True)
+Path(root_path+"/camera/").mkdir(parents=True, exist_ok=True)
 
 print(sub_type)
 

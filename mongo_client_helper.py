@@ -43,8 +43,7 @@ def check_device_register():
         return True
 
 def save_device_config():
-    result = devicecollection.find_one({'thingName':device_thing})
-    print(result)    
+    result = devicecollection.find_one({'thingName':device_thing})       
     if result is None:
         print("no result")
     else:
@@ -61,6 +60,15 @@ def save_device_config():
         config.set('device_configuration', 'name', str(result.get("name")))
         config.set('device_configuration', 'count_config', str(result.get("count_config")))
         config.set('device_configuration', 'sub_type', str(result.get("sub_type")))
+
+        config.set('device_configuration', 'sleep_duration_sec', str(result.get("sleep_duration_sec")))
+        config.set('device_configuration', 'total_distance', str(result.get("total_distance")))
+        config.set('device_configuration', 'number_of_collection_points', str(result.get("number_of_collection_points")))
+        config.set('device_configuration', 'collection_angle', str(result.get("collection_angle")))
+        config.set('device_configuration', 'image_zoom_level', str(result.get("image_zoom_level")))
+        config.set('device_configuration', 'record_duration_sec', str(result.get("record_duration_sec")))
+        config.set('device_configuration', 'record_angle', str(result.get("record_angle")))
+        config.set('device_configuration', 'collection_mode', str(result.get("collection_mode")))
         
 
         with open('config.ini', 'w') as configfile:
