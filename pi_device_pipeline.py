@@ -17,10 +17,10 @@ from mongo_client_helper import save_device_config,set_device_status,add_device_
 from sniff import record_gas_sensor_data
 from bson import ObjectId
 import os,subprocess
+import looke_constant
 
 
-
-root_path = "/home/pi/looke-client-device"
+root_path = looke_constant.root_path
 
 isdevice_registered = check_device_register()
 
@@ -58,7 +58,9 @@ collection_mode=device_configuration["collection_mode"]
 
 curr_dt = datetime.now()
 timestamp = int(round(curr_dt.timestamp()))
-record_files=[]
+
+left_record_files=[]
+right_record_files=[]
 
 left_videofile="{}_{}_left_video.mp4".format(timestamp,device_thing)
 right_videofile="{}_{}_right_video.mp4".format(timestamp,device_thing)
@@ -67,6 +69,7 @@ right_videofile="{}_{}_right_video.mp4".format(timestamp,device_thing)
 print(left_videofile)
 
 def leftside_video_capture_pipeline(camera):
+    left_record_files=[]
     camera.start()
     print("start left side video record")
     curr_dt = datetime.now()
@@ -81,7 +84,7 @@ def leftside_video_capture_pipeline(camera):
     camera.start_recording(encoder, output)
     time.sleep(int(record_duration_sec))
     camera.stop_recording()  
-    record_files.append(left_videofile) 
+    left_record_files.append(left_videofile) 
     leftside_capture_images(camera)    
 
 def leftside_capture_images(camera):
@@ -90,13 +93,14 @@ def leftside_capture_images(camera):
         print(angle)
         set_camera_angle(int(angle))
         for zoom in image_zoom_level:
-            set_camera_zoom(camera,zoom)
+            set_mannual_focus(camera,zoom)
             image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,angle,zoom)            
             camera.capture_file(root_path + '/camera/'+ image_file_name)
-            record_files.append(image_file_name)
+            left_record_files.append(image_file_name)
             time.sleep(1)    
 
 def rightside_video_capture_pipeline(camera):
+    right_record_files=[]
     camera.start()
     print("start right side video recording")
     curr_dt = datetime.now()
@@ -111,7 +115,7 @@ def rightside_video_capture_pipeline(camera):
     camera.start_recording(encoder, output)
     time.sleep(int(record_duration_sec))    
     camera.stop_recording()
-    record_files.append(right_videofile)
+    right_record_files.append(right_videofile)
     rightside_capture_images(camera)    
 
 def rightside_capture_images(camera):
@@ -121,21 +125,19 @@ def rightside_capture_images(camera):
         angle = int(angle) * -1
         set_camera_angle(angle)
         for zoom in image_zoom_level:
-            set_camera_zoom(camera,zoom)
+            set_mannual_focus(camera,zoom)
             image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,angle,zoom)            
             camera.capture_file(root_path + '/camera/'+ image_file_name)
-            record_files.append(image_file_name)
-            time.sleep(1)
-
-   
+            right_record_files.append(image_file_name)
+            time.sleep(1)   
     
 def set_camera_angle(angle):
     servo.angle = angle
     time.sleep(2)
     #servo1.ChangeDutyCycle(0)
 
-def set_camera_zoom(camera,mpx):
-    camera.zoom=(0,0,0.5,0.5)
+def set_mannual_focus(camera,focus_value):
+    camera.set_controls({"AfMode": 0, "LensPosition": focus_value})
 
 def check_mount_and_configured():
     mountpath = root_path + "/camera"
@@ -145,7 +147,7 @@ def check_mount_and_configured():
         for f in os.listdir(mountpath):
             os.remove(os.path.join(mountpath, f))
 
-        mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:/home/nvidia/camera_stream/ /home/pi/looke-client-device/camera/  <<< {}".format('nvidia')
+        mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:/home/nvidia/camera_stream/ "+root_path+"/camera/  <<< {}".format('nvidia')
         subprocess.call(mount_command, shell=True, executable='/bin/bash')
         print("directory mount success")
 
@@ -174,7 +176,12 @@ def process_moving_device(camera,client):
     camera.close()
 
     print(lnc_id)
-    send_file_obj={
+
+
+    off_records=[]
+
+    if len(left_record_files)>0:
+        send_file_obj={
         "device_id":device_id,
         "device_thing":device_thing,
         "device_name":device_name,
@@ -183,10 +190,28 @@ def process_moving_device(camera,client):
         "location" : location,
         "exporterchannel" : lnc_id,
         "tasks":tasks,
-        "files":record_files,
+        "files":left_record_files,
         "config":count_config
-    }
-    send(client,"$looke/filetransfer_status/"+device_thing,json.dumps(send_file_obj))
+        }
+        off_records.append(send_file_obj)
+
+    if len(right_record_files)>0:
+        send_file_obj={
+        "device_id":device_id,
+        "device_thing":device_thing,
+        "device_name":device_name,
+        "deck" : deck,
+        "pen" : pen,
+        "location" : location,
+        "exporterchannel" : lnc_id,
+        "tasks":tasks,
+        "files":right_record_files,
+        "config":count_config
+        }
+        off_records.append(send_file_obj)
+        
+
+    send(client,"$looke/filetransfer_status/"+device_thing,json.dumps(off_records))
 
     print("recorded screen and images are successfully sent to edge device")
 

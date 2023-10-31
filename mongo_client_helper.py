@@ -7,9 +7,13 @@ import os
 import configparser  
 import getmac
 import subprocess
+import looke_constant
+
+
+root_path = looke_constant.root_path
 
 config = configparser.ConfigParser()
-config.read("/home/pi/looke-client/config.ini")
+config.read(root_path + "/config.ini")
 
 
 mqtt_broker_setting = config["mqtt_broker"]
