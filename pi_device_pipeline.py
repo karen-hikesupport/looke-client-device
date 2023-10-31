@@ -1,5 +1,10 @@
 import time,math
-import picamera
+
+from picamera2 import Picamera2
+from picamera2.encoders import H264Encoder
+from picamera2.outputs import FfmpegOutput
+from libcamera import controls
+
 from fractions import Fraction
 from datetime import datetime
 from get_sensor_data import get_data
@@ -15,7 +20,7 @@ import os,subprocess
 
 
 
-root_path = "/home/pi/looke-client"
+root_path = "/home/pi/looke-client-device"
 
 isdevice_registered = check_device_register()
 
@@ -43,8 +48,8 @@ sub_type = device_configuration["sub_type"]
 sleep_duration_sec=device_configuration["sleep_duration_sec"]
 total_distance=device_configuration["total_distance"]
 number_of_collection_points=device_configuration["number_of_collection_points"]
-collection_angle=device_configuration["collection_angle"]
-image_zoom_level=device_configuration["image_zoom_level"]
+collection_angle=json.loads(device_configuration["collection_angle"])
+image_zoom_level=json.loads(device_configuration["image_zoom_level"])
 record_duration_sec=device_configuration["record_duration_sec"]
 record_angle=device_configuration["record_angle"]
 collection_mode=device_configuration["collection_mode"]
@@ -55,126 +60,74 @@ curr_dt = datetime.now()
 timestamp = int(round(curr_dt.timestamp()))
 record_files=[]
 
-left_videofile="{}_{}_left_video.h264".format(timestamp,device_thing)
-right_videofile="{}_{}_right_video.h264".format(timestamp,device_thing)
-
-
+left_videofile="{}_{}_left_video.mp4".format(timestamp,device_thing)
+right_videofile="{}_{}_right_video.mp4".format(timestamp,device_thing)
 
 
 print(left_videofile)
 
 def leftside_video_capture_pipeline(camera):
+    camera.start()
     print("start left side video record")
     curr_dt = datetime.now()
     timestamp = str(int(round(curr_dt.timestamp())))
     videofilename = root_path+"/camera/{}".format(left_videofile)
+
+    encoder = H264Encoder(10000000)
+    output = FfmpegOutput(videofilename, audio=False)
+
     #set camera angle according device setting for record
-    set_camera_angle(record_angle)
-    camera.start_recording(videofilename)
-    time.sleep(record_duration_sec)
-    #for x in range(0,50):
-    #    camera.zoom=(x/100.,x/100.,0.5,0.5)
-    #    time.sleep(0.1)
-    #time.sleep(1) 
-    #camera.zoom=(0,0,1,1)
-    camera.stop_recording()   
+    set_camera_angle(int(record_angle))    
+    camera.start_recording(encoder, output)
+    time.sleep(int(record_duration_sec))
+    camera.stop_recording()  
     record_files.append(left_videofile) 
     leftside_capture_images(camera)    
 
 def leftside_capture_images(camera):
-    
+    camera.start()
     for angle in collection_angle:
         print(angle)
-        set_camera_angle(angle)
+        set_camera_angle(int(angle))
         for zoom in image_zoom_level:
             set_camera_zoom(camera,zoom)
-            image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,angle,zoom)
-            camera.capture(root_path + '/camera/'+ image_file_name)
+            image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,angle,zoom)            
+            camera.capture_file(root_path + '/camera/'+ image_file_name)
             record_files.append(image_file_name)
-            time.sleep(1)
-
-    print("start left side capture image 0 degree")
-    #camera position to angle 0
-    set_camera_angle(0)
-    for x in range(0,5):
-        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,0,x)
-        camera.capture(root_path + '/camera/'+ image_file_name)
-        record_files.append(image_file_name)
-        time.sleep(1)
-    print("start left side capture image 35 degree")
-    #camera position to angle 35 degree
-    set_camera_angle(35)
-    for x in range(0,5):
-        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,35,x)
-        camera.capture(root_path + '/camera/'+image_file_name)
-        record_files.append(image_file_name)
-        time.sleep(1)
-    #camera position to angle 55 degree
-    set_camera_angle(55)
-    print("start left side capture image 55 degree")
-    for x in range(0,5):
-        image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,55,x)
-        camera.capture(root_path + '/camera/'+image_file_name)
-        record_files.append(image_file_name)
-        time.sleep(1)    
-
+            time.sleep(1)    
 
 def rightside_video_capture_pipeline(camera):
+    camera.start()
     print("start right side video recording")
     curr_dt = datetime.now()
     timestamp = str(int(round(curr_dt.timestamp())))
     videofilename = root_path + "/camera/{}".format(right_videofile)
+
+    encoder = H264Encoder(10000000)
+    output = FfmpegOutput(videofilename, audio=False)
     #set camera angle according device setting for record
-    angle = record_angle * -1
-    set_camera_angle(angle)
-    camera.start_recording(videofilename)
-    time.sleep(record_duration_sec)
-    #for x in range(0,50):
-    #    camera.zoom=(x/100.,x/100.,0.5,0.5)
-    #    time.sleep(0.1)
-    #time.sleep(1) 
-    #camera.zoom=(0,0,1,1)
+    angle = int(record_angle) * -1
+    set_camera_angle(angle)    
+    camera.start_recording(encoder, output)
+    time.sleep(int(record_duration_sec))    
     camera.stop_recording()
     record_files.append(right_videofile)
     rightside_capture_images(camera)    
 
 def rightside_capture_images(camera):
-
+    camera.start()
     for angle in collection_angle:
         print(angle)
-        angle = angle * -1
+        angle = int(angle) * -1
         set_camera_angle(angle)
         for zoom in image_zoom_level:
             set_camera_zoom(camera,zoom)
-            image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,angle,zoom)
-            camera.capture(root_path + '/camera/'+ image_file_name)
+            image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,angle,zoom)            
+            camera.capture_file(root_path + '/camera/'+ image_file_name)
             record_files.append(image_file_name)
             time.sleep(1)
 
-    print("start right side capture image 0 degree")
-    #camera position to angle 0
-    set_camera_angle(0)
-    for x in range(0,5):
-        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,0,x)
-        camera.capture(root_path +'/camera/'+image_file_name)
-        record_files.append(image_file_name)
-        time.sleep(1)
-    print("start right side capture image 35 degree")
-    #camera position to angle 35 degree
-    set_camera_angle(-35)
-    for x in range(6,10):
-        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,35,x)
-        camera.capture(root_path + '/camera/'+image_file_name)
-        record_files.append(image_file_name)
-        time.sleep(1)
-    print("start right side capture image 55 degree")
-    #camera position to angle 55 degree
-    set_camera_angle(-55)
-    for x in range(11,15):
-        image_file_name = "{}_{}_{}_right_image{}.jpeg".format(timestamp,device_thing,55,x)
-        camera.capture(root_path+ '/camera/'+image_file_name)
-        record_files.append(image_file_name)
-        time.sleep(1)    
+   
     
 def set_camera_angle(angle):
     servo.angle = angle
@@ -192,7 +145,7 @@ def check_mount_and_configured():
         for f in os.listdir(mountpath):
             os.remove(os.path.join(mountpath, f))
 
-        mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:/home/nvidia/camera_stream/ /home/pi/looke-client/camera/  <<< {}".format('nvidia')
+        mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:/home/nvidia/camera_stream/ /home/pi/looke-client-device/camera/  <<< {}".format('nvidia')
         subprocess.call(mount_command, shell=True, executable='/bin/bash')
         print("directory mount success")
 
@@ -217,6 +170,8 @@ def process_moving_device(camera,client):
     #set camera position right side
     if is_right == True:
         rightside_video_capture_pipeline(camera)  
+
+    camera.close()
 
     print(lnc_id)
     send_file_obj={
@@ -284,7 +239,7 @@ def process_moving_device(camera,client):
 
 
 
-check_mount_and_configured()
+
 
 mqtt_broker_setting = config["mqtt_broker"]
 mqtthost = mqtt_broker_setting["host"]
@@ -309,6 +264,8 @@ print("connected edged device successfully")
 print("Now capture and record the screen and send to edge device.....")
 Path(root_path+"/camera/").mkdir(parents=True, exist_ok=True)
 
+check_mount_and_configured()
+
 print(sub_type)
 
 if sub_type != "0":
@@ -317,16 +274,9 @@ if sub_type != "0":
 
 
 
-with picamera.PiCamera() as camera:
-   
-    camera.resolution = (1920, 1080)
-    #camera.framerate = Fraction(1, 6)
-    camera.sensor_mode = 3
-    #camera.shutter_speed = 6000000
-    camera.iso = 800
-    #camera.exposure_mode = 'off'     
-    
-    process_moving_device(camera,client)
+camera = Picamera2()   
+
+process_moving_device(camera,client)
    
     
 

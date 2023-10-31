@@ -12,7 +12,7 @@ import get_process
 
 
 config = configparser.ConfigParser()
-config.read("/home/pi/looke-client/config.ini")
+config.read("/home/pi/looke-client-device/config.ini")
 
 
 device_configuration = config["device_configuration"]
@@ -117,7 +117,7 @@ def on_message_status_check(client, userdata, msg):
 
 def on_message_start_rtsp(client, userdata, msg):
         print("start rtsp server")
-        cmd="/home/pi/looke-client/gst-rtsp-server-1.14.4/examples/test-launch --gst-debug=3 '( rpicamsrc bitrate=8000000 awb-mode=tungsten preview=false ! video/x-h264, width=640, height=480, framerate=30/1 ! h264parse ! rtph264pay name=pay0 pt=96 )'"
+        cmd="/home/pi/looke-client-device/gst-rtsp-server-1.14.4/examples/test-launch --gst-debug=3 '( rpicamsrc bitrate=8000000 awb-mode=tungsten preview=false ! video/x-h264, width=640, height=480, framerate=30/1 ! h264parse ! rtph264pay name=pay0 pt=96 )'"
         global pro
         pro = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
                        shell=True, preexec_fn=os.setsid) 
@@ -142,7 +142,7 @@ def on_message_stop_rtsp(client, userdata, msg):
 def on_message_start_countzone(client, userdata, msg):
         get_process.stop_process('python3', 8000)
         print("start rtsp server")
-        cmd="python3 /home/pi/looke-client/rpi_camera_surveillance_system.py"
+        cmd="python3 /home/pi/looke-client-device/rpi_camera_surveillance_system.py"
         global pro
         pro = subprocess.Popen(cmd, stdout=subprocess.PIPE, 
                        shell=True, preexec_fn=os.setsid) 
