@@ -39,8 +39,7 @@ eventscollection=mydatabase["events"]
 
 
 def check_device_register():
-    result = devicecollection.find_one({'thingName':device_thing})
-    print(result)    
+    result = devicecollection.find_one({'thingName':device_thing})       
     if result is None:
         return False
     else:
@@ -54,7 +53,7 @@ def save_device_config():
         config.set('device_configuration', 'deck', str(result.get("deck")))
         config.set('device_configuration', 'pen', str(result.get("pen")))
         config.set('device_configuration', 'device_id', str(result.get("_id")))
-        #config.set('device_configuration', 'location', result["location"])
+        config.set('device_configuration', 'lnc_id', str(result["exporterchannel"]))
         config.set('device_configuration', 'data_interval', str(result.get("dataInterval")))
         #config.set('device_configuration', 'start_time', result["start_time"])
         #config.set('device_configuration', 'end_time', result["end_time"])
@@ -115,7 +114,7 @@ def set_edgedevice_online():
         result = devicecollection.update_one({'name':'Edge Device'}, {"$set" : {"status" :True}})         
 
 def delete_all_file():
-        mountpath = "/home/pi/looke-client/camera"
+        mountpath = "/home/pi/looke-client-device/camera"
         for f in os.listdir(mountpath):
             os.remove(os.path.join(mountpath, f))
 
@@ -125,5 +124,5 @@ def delete_all_file():
 #print(getmac.get_mac_address())
 #deleteDevice()
 #result = check_device_register()
-#delete_all_file()
+delete_all_file()
 #deleteAllevents()

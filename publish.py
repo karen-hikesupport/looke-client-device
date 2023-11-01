@@ -45,14 +45,13 @@ def connect_mqtt(host,port):
     client.on_connect = on_connect    
     client.on_log=on_log
     client.on_disconnect = on_disconnect
-    client._connect_timeout = 500
+    client._connect_timeout = 5000
     client.connect(host, port,keepalive=0)    
     return client
 
 
 def publish(client,topic,msg):            
-    print(topic)
-    print(msg)
+    print(topic)   
     result = client.publish(topic, msg, qos=2, retain=False)
     # result: [0, 1]
     status = result[0]

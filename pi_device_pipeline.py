@@ -66,10 +66,7 @@ left_videofile="{}_{}_left_video.mp4".format(timestamp,device_thing)
 right_videofile="{}_{}_right_video.mp4".format(timestamp,device_thing)
 
 
-print(left_videofile)
-
-def leftside_video_capture_pipeline(camera):
-    left_record_files=[]
+def leftside_video_capture_pipeline(camera):    
     camera.start()
     print("start left side video record")
     curr_dt = datetime.now()
@@ -80,27 +77,28 @@ def leftside_video_capture_pipeline(camera):
     output = FfmpegOutput(videofilename, audio=False)
 
     #set camera angle according device setting for record
-    set_camera_angle(int(record_angle))    
+    set_camera_angle(int(record_angle)) 
+    #set_mannual_focus(camera,0)   
     camera.start_recording(encoder, output)
     time.sleep(int(record_duration_sec))
     camera.stop_recording()  
-    left_record_files.append(left_videofile) 
-    leftside_capture_images(camera)    
+    left_record_files.append(left_videofile)     
+    leftside_capture_images(camera)  
+    
 
 def leftside_capture_images(camera):
     camera.start()
-    for angle in collection_angle:
-        print(angle)
+    for angle in collection_angle:        
         set_camera_angle(int(angle))
         for zoom in image_zoom_level:
             set_mannual_focus(camera,zoom)
             image_file_name = "{}_{}_{}_left_image{}.jpeg".format(timestamp,device_thing,angle,zoom)            
             camera.capture_file(root_path + '/camera/'+ image_file_name)
             left_record_files.append(image_file_name)
-            time.sleep(1)    
+            print(image_file_name)
+            time.sleep(1)  
 
-def rightside_video_capture_pipeline(camera):
-    right_record_files=[]
+def rightside_video_capture_pipeline(camera):    
     camera.start()
     print("start right side video recording")
     curr_dt = datetime.now()
@@ -112,6 +110,7 @@ def rightside_video_capture_pipeline(camera):
     #set camera angle according device setting for record
     angle = int(record_angle) * -1
     set_camera_angle(angle)    
+    set_mannual_focus(camera,0)
     camera.start_recording(encoder, output)
     time.sleep(int(record_duration_sec))    
     camera.stop_recording()
@@ -132,11 +131,13 @@ def rightside_capture_images(camera):
             time.sleep(1)   
     
 def set_camera_angle(angle):
+    print("set camera angle:" + str(angle))
     servo.angle = angle
     time.sleep(2)
     #servo1.ChangeDutyCycle(0)
 
 def set_mannual_focus(camera,focus_value):
+    print("set camera focus:" +str(focus_value))
     camera.set_controls({"AfMode": 0, "LensPosition": focus_value})
 
 def check_mount_and_configured():
@@ -175,10 +176,8 @@ def process_moving_device(camera,client):
 
     camera.close()
 
-    print(lnc_id)
-
-
-    off_records=[]
+    print(left_record_files)
+   
 
     if len(left_record_files)>0:
         send_file_obj={
@@ -192,8 +191,8 @@ def process_moving_device(camera,client):
         "tasks":tasks,
         "files":left_record_files,
         "config":count_config
-        }
-        off_records.append(send_file_obj)
+        }        
+        send(client,"$looke/send_capture_data/"+device_thing,json.dumps(send_file_obj))
 
     if len(right_record_files)>0:
         send_file_obj={
@@ -207,11 +206,11 @@ def process_moving_device(camera,client):
         "tasks":tasks,
         "files":right_record_files,
         "config":count_config
-        }
-        off_records.append(send_file_obj)
+        }        
+        send(client,"$looke/send_capture_data/"+device_thing,json.dumps(send_file_obj))
         
-
-    send(client,"$looke/filetransfer_status/"+device_thing,json.dumps(off_records))
+    print("all file transfer and created background job")
+    #send(client,"$looke/filetransfer_status/"+device_thing,json.dumps(off_records))
 
     print("recorded screen and images are successfully sent to edge device")
 
@@ -300,7 +299,8 @@ if sub_type != "0":
 
 
 camera = Picamera2()   
-
+video_config = camera.create_video_configuration()
+camera.configure(video_config)
 process_moving_device(camera,client)
    
     
