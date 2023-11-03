@@ -148,7 +148,7 @@ def check_mount_and_configured():
         for f in os.listdir(mountpath):
             os.remove(os.path.join(mountpath, f))
 
-        mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:/home/nvidia/camera_stream/ "+root_path+"/camera/  <<< {}".format('nvidia')
+        mount_command = "sudo sshfs -o allow_other,default_permissions,password_stdin nvidia@192.168.0.230:"+ looke_constant.edge_device_mount_path +" "+root_path+"/camera/  <<< {}".format('nvidia')
         subprocess.call(mount_command, shell=True, executable='/bin/bash')
         print("directory mount success")
 
@@ -289,8 +289,6 @@ print("Now capture and record the screen and send to edge device.....")
 Path(root_path+"/camera/").mkdir(parents=True, exist_ok=True)
 
 check_mount_and_configured()
-
-print(sub_type)
 
 if sub_type != "0":
     print("couting device")

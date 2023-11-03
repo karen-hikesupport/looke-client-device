@@ -35,6 +35,7 @@ devicecollection=mydatabase["devices"]
 devicelogcollection=mydatabase["device.logs"]
 recordcollection=mydatabase["records"]
 eventscollection=mydatabase["events"]
+settingscollection=mydatabase["settings"]
 
 
 
@@ -108,7 +109,12 @@ def get_device_log():
 
 def get_records():    
     for x in eventscollection.find():
-        print(x)       
+        print(x)   
+
+def get_settings():    
+    for x in settingscollection.find():
+        print(x) 
+            
 
 def set_edgedevice_online():
         result = devicecollection.update_one({'name':'Edge Device'}, {"$set" : {"status" :True}})         
@@ -124,5 +130,6 @@ def delete_all_file():
 #print(getmac.get_mac_address())
 #deleteDevice()
 #result = check_device_register()
-delete_all_file()
+#delete_all_file()
 #deleteAllevents()
+#get_settings()
